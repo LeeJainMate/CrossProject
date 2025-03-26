@@ -2,7 +2,6 @@ package main
 
 import (
 	"Project-Go/app"
-	"Project-Go/model"
 	"fmt"
 	"log"
 
@@ -38,9 +37,5 @@ func main() {
 	}
 	defer sqlDB.Close()
 
-	customers := []model.Customer{}
-	db.Find(&customers)
-	// fmt.Println(customers)
-
-	app.StartServer()
+	app.StartServer(db)
 }
