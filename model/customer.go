@@ -12,7 +12,7 @@ type Customer struct {
 	Email       string    `gorm:"column:email;unique;NOT NULL"`
 	PhoneNumber string    `gorm:"column:phone_number"` 
 	Address     string    `gorm:"column:address"`
-	Password    string    `gorm:"column:password;NOT NULL";`
+	Password    string    `gorm:"column:password;NOT NULL"`
 	CreatedAt   time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;default:CURRENT_TIMESTAMP"`
 }

@@ -1,58 +1,57 @@
 package app
 
-// import (
-// 	"Project-Go/model"
-// 	"net/http"
+import (
+	"Project-Go/model" // สมมติว่า Customer โมเดลของคุณอยู่ในแพคเกจนี้
+	"Project-Go/utils"
+	"net/http"
 
-// 	"github.com/gin-gonic/gin"
-// 	"golang.org/x/crypto/bcrypt"
-// 	"gorm.io/gorm"
-// )
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
 
-// func ChangePassword(router *gin.Engine, db *gorm.DB) {
-// 	routes := router.Group("/change-password")
-// 	{
-// 		routes.POST("/", func(c *gin.Context) {
-// 			var requestData struct {
-// 				Email       string `json:"email" binding:"required,email"`
-// 				OldPassword string `json:"old_password" binding:"required"`
-// 				NewPassword string `json:"new_password" binding:"required,min=6"`
-// 			}
+// ฟังก์ชันสำหรับเปลี่ยนรหัสผ่าน
+func ChangePassword(router *gin.Engine, db *gorm.DB) {
+	routes := router.Group("/changepassword")
+	{
+		routes.POST("/", func(c *gin.Context) {
+			var changeData struct {
+				Email       string `json:"email" binding:"required,email"`
+				OldPassword string `json:"old_password" binding:"required"`
+				NewPassword string `json:"new_password" binding:"required"`
+			}
 
-// 			// 1️⃣ ตรวจสอบว่า Request ถูกต้องหรือไม่
-// 			if err := c.ShouldBindJSON(&requestData); err != nil {
-// 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 				return
-// 			}
+			// Binding ค่า JSON ที่ส่งมา
+			if err := c.ShouldBindJSON(&changeData); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 
-// 			// 2️⃣ ค้นหาผู้ใช้ในฐานข้อมูล
-// 			var customer model.Customer
-// 			result := db.Where("email = ?", requestData.Email).First(&customer)
+			var customer model.Customer
+			// ค้นหาผู้ใช้งานจากอีเมล์
+			result := db.Where("email = ?", changeData.Email).First(&customer)
+			if result.Error != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "User not found"})
+				return
+			}
 
-// 			if result.Error != nil {
-// 				c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
-// 				return
-// 			}
+			// ตรวจสอบรหัสผ่านเก่ากับที่เก็บในฐานข้อมูล
+			if !utils.CheckPassword(customer.Password, changeData.OldPassword) {
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "Old password is incorrect"})
+				return
+			}
 
-// 			// 3️⃣ ตรวจสอบรหัสผ่านเก่า
-// 			if err := bcrypt.CompareHashAndPassword([]byte(customer.Password), []byte(requestData.OldPassword)); err != nil {
-// 				c.JSON(http.StatusUnauthorized, gin.H{"message": "Old password is incorrect"})
-// 				return
-// 			}
+			// เข้ารหัสรหัสผ่านใหม่
+			hashedNewPassword, err := utils.HashPassword(changeData.NewPassword)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash new password"})
+				return
+			}
 
-// 			// 4️⃣ เข้ารหัสรหัสผ่านใหม่
-// 			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestData.NewPassword), bcrypt.DefaultCost)
-// 			if err != nil {
-// 				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error hashing password"})
-// 				return
-// 			}
+			// อัปเดตรหัสผ่านใหม่ในฐานข้อมูล
+			customer.Password = hashedNewPassword
+			db.Save(&customer)
 
-// 			// 5️⃣ อัปเดตรหัสผ่านใหม่ในฐานข้อมูล
-// 			customer.Password = string(hashedPassword)
-// 			db.Save(&customer)
-
-// 			// 6️⃣ ส่งข้อความแจ้งเตือนว่ารหัสผ่านเปลี่ยนสำเร็จ
-// 			c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
-// 		})
-// 	}
-// }
+			c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+		})
+	}
+}
